@@ -1,0 +1,1 @@
+Run the original model and save complete actual output as `verification.txt`. Record ProVerif version, exact command, query results, warnings, and any attack trace. Do not paste predicted output as if it were executed evidence.

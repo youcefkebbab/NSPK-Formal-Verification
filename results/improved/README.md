@@ -1,0 +1,1 @@
+Run the improved model and save complete actual output as `verification.txt`. Record ProVerif version, exact command, query results, and warnings. Only claim a property is verified when the actual output supports it.

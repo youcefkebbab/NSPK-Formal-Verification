@@ -1,0 +1,61 @@
+(* Original Needham-Schroeder Public-Key protocol.
+   Public channel is controlled by the Dolev-Yao attacker. *)
+
+free net: channel.
+type host.
+type pkey.
+type skey.
+free A, B, E: host.
+
+fun pk(skey): pkey.
+fun aenc(bitstring, pkey): bitstring.
+reduc forall m: bitstring, sk: skey;
+  adec(aenc(m, pk(sk)), sk) = m.
+
+event beginA(host, host, bitstring).
+event endA(host, host, bitstring).
+event beginB(host, host, bitstring).
+event endB(host, host, bitstring).
+
+query x: bitstring;
+  inj-event(endB(A, B, x)) ==> inj-event(beginA(A, B, x)).
+
+query x: bitstring;
+  inj-event(endA(A, B, x)) ==> inj-event(beginB(B, A, x)).
+
+let initiator(skA: skey, pkPeer: pkey, me: host, peer: host) =
+  new na: bitstring;
+  event beginA(me, peer, na);
+  out(net, aenc((na, me), pkPeer));
+  in(net, response: bitstring);
+  let (=na, nb: bitstring) = adec(response, skA) in
+  out(net, aenc(nb, pkPeer));
+  event endA(me, peer, na).
+
+let responder(skB: skey, me: host) =
+  in(net, first: bitstring);
+  let (na: bitstring, peer: host) = adec(first, skB) in
+  event beginB(me, peer, na);
+  new nb: bitstring;
+  out(net, aenc((na, nb), pk(peer)));
+  in(net, third: bitstring);
+  let (=nb) = adec(third, skB) in
+  event endB(peer, me, na).
+
+process
+  new skA: skey;
+  let pkA = pk(skA) in
+  new skB: skey;
+  let pkB = pk(skB) in
+  new skE: skey;
+  let pkE = pk(skE) in
+  out(net, pkA);
+  out(net, pkB);
+  out(net, pkE);
+  (
+    (!initiator(skA, pkB, A, B))
+    |
+    (!initiator(skA, pkE, A, E))
+    |
+    (!responder(skB, B))
+  )

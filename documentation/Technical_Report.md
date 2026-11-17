@@ -1,8 +1,8 @@
 # Formal Verification of the Needham-Schroeder Public-Key Protocol Using ProVerif
 
-**Students:** [Names]  
-**Supervisor:** [Name]  
-**Institution:** [Institution]  
+**Students:** HELLAL Ayoub , KHANCHOUCHE Amina , KEBBAB Youcef  
+**Supervisor:**   
+**Institution:** FERHAT ABBAS UNIVERSITY 
 **Module:** Computer-Aided Verification
 
 > Replace placeholders and insert actual ProVerif output. Do not present expected results as executed results.

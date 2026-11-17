@@ -1,57 +1,108 @@
-(* Needham-Schroeder-Lowe Public-Key protocol.
-   Message 2 includes the responder identity; Alice checks it. *)
+
+(* Needham-Schroeder-Lowe Public-Key Protocol *)
 
 free net: channel.
+
 type host.
 type pkey.
 type skey.
+
 free A, B, E: host.
 
+(* Public and private key relationship *)
 fun pk(skey): pkey.
 fun aenc(bitstring, pkey): bitstring.
+
 reduc forall m: bitstring, sk: skey;
   adec(aenc(m, pk(sk)), sk) = m.
 
+(* Associate each host with its public key *)
+table keys(host, pkey).
+
+(* Authentication events *)
 event beginA(host, host, bitstring).
 event endA(host, host, bitstring).
 event beginB(host, host, bitstring).
 event endB(host, host, bitstring).
 
+(* Authentication queries *)
 query x: bitstring;
   inj-event(endB(A, B, x)) ==> inj-event(beginA(A, B, x)).
 
 query x: bitstring;
   inj-event(endA(A, B, x)) ==> inj-event(beginB(B, A, x)).
 
-let initiator(skA: skey, pkPeer: pkey, me: host, peer: host) =
+(* Initiator process *)
+let initiator(skA: skey, pkPeer: pkey,
+              me: host, peer: host) =
+
   new na: bitstring;
+
   event beginA(me, peer, na);
+
+  (* Message 1: A -> B *)
   out(net, aenc((na, me), pkPeer));
+
+  (* Receive message 2 *)
   in(net, response: bitstring);
+
+  (* Check nonce AND responder identity *)
   let (=na, nb: bitstring, =peer) = adec(response, skA) in
+
+  (* Message 3: A -> B *)
   out(net, aenc(nb, pkPeer));
+
   event endA(me, peer, na).
 
+
+(* Responder process *)
 let responder(skB: skey, me: host) =
+
+  (* Receive message 1 *)
   in(net, first: bitstring);
+
   let (na: bitstring, peer: host) = adec(first, skB) in
+
   event beginB(me, peer, na);
+
   new nb: bitstring;
-  out(net, aenc((na, nb, me), pk(peer)));
+
+  (* Find the public key of the peer *)
+  get keys(=peer, pkPeer: pkey) in
+
+  (* Message 2 includes responder identity *)
+  out(net, aenc((na, nb, me), pkPeer));
+
+  (* Receive message 3 *)
   in(net, third: bitstring);
+
   let (=nb) = adec(third, skB) in
+
   event endB(peer, me, na).
 
+
+(* Main process *)
 process
+
   new skA: skey;
   let pkA = pk(skA) in
+
   new skB: skey;
   let pkB = pk(skB) in
+
   new skE: skey;
   let pkE = pk(skE) in
+
+  (* Publish public keys *)
   out(net, pkA);
   out(net, pkB);
   out(net, pkE);
+
+  (* Register host/public-key associations *)
+  insert keys(A, pkA);
+  insert keys(B, pkB);
+  insert keys(E, pkE);
+
   (
     (!initiator(skA, pkB, A, B))
     |
